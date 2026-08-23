@@ -24,8 +24,13 @@ export function loadBoard(filters) {
   if (filters.query) params.set("q", filters.query)
   if (filters.client) params.set("client", filters.client)
   if (filters.dueSoon) params.set("due", "soon")
+  if (filters.minMatch) params.set("min", filters.minMatch)
   const query = params.toString()
   return request(`/api/board${query ? `?${query}` : ""}`)
+}
+
+export function updateProfile(payload) {
+  return request("/api/profile", { method: "PATCH", body: JSON.stringify(payload) })
 }
 
 export function createClient(payload) {

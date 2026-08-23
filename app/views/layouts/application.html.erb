@@ -3,7 +3,7 @@
   <head>
     <title><%= content_for(:title) || "Folio" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="description" content="Studio queue. Clients, commissions, and a Vue board. ROM stores the work.">
+    <meta name="description" content="Role board. Paste a listing, match it against your skills, drag the card.">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= yield :head %>
@@ -14,13 +14,13 @@
     <div class="shell">
       <header class="mast">
         <div>
-          <p class="eyebrow">Studio queue</p>
+          <p class="eyebrow">Role board</p>
           <p class="wordmark"><%= link_to "Folio", root_path %></p>
         </div>
         <p class="lede">
-          One board. Clients and commissions live in ROM.
-          Vue is the board and the filters. Drag a card, or open it
-          and write the note.
+          Save a role, paste the listing, see what fits. Drag the card
+          as you apply. Matching is words in the listing against your
+          skills, not a model.
         </p>
       </header>
       <main>

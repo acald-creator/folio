@@ -5,17 +5,20 @@ import * as api from "./api.js"
 const columns = ref({})
 const clients = ref([])
 const states = ref({})
+const profile = ref({ name: "", headline: "", summary: "", skills: [] })
 const error = ref("")
 const selectedId = ref(null)
 const showClient = ref(false)
 const showCommission = ref(false)
+const showProfile = ref(false)
 const overState = ref("")
 
-const filters = reactive({ query: "", client: "", dueSoon: false })
+const filters = reactive({ query: "", client: "", dueSoon: false, minMatch: "" })
 const clientForm = reactive({ name: "", note: "" })
-const jobForm = reactive({ title: "", client_id: "", state: "inquiry", due_on: "", notes: "" })
-const edit = reactive({ title: "", client_id: "", due_on: "", notes: "", state: "" })
+const jobForm = reactive({ title: "", client_id: "", state: "saved", due_on: "", listing: "", notes: "" })
+const edit = reactive({ title: "", client_id: "", due_on: "", notes: "", listing: "", state: "" })
 const assetForm = reactive({ label: "", url: "" })
+const profileForm = reactive({ name: "", headline: "", summary: "", skills: "" })
 
 const selected = computed(() => {
   for (const list of Object.values(columns.value)) {
@@ -33,11 +36,24 @@ const dueSoon = (due) => {
   return stamp <= cutoff
 }
 
+function matchTone(score) {
+  if (score == null) return "none"
+  if (score >= 60) return "high"
+  if (score >= 35) return "mid"
+  return "low"
+}
+
+function matchLabel(item) {
+  if (!item.match || item.match.score == null) return "No listing yet"
+  return `${item.match.score}% match`
+}
+
 async function refresh() {
   const data = await api.loadBoard(filters)
   columns.value = data.columns
   clients.value = data.clients
   states.value = data.states
+  profile.value = data.profile
 }
 
 async function run(work) {
@@ -62,6 +78,7 @@ function open(item) {
   edit.client_id = String(item.client.id)
   edit.due_on = item.due_on || ""
   edit.notes = item.notes
+  edit.listing = item.listing || ""
   edit.state = item.state
   assetForm.label = ""
   assetForm.url = ""
@@ -69,6 +86,26 @@ function open(item) {
 
 function close() {
   selectedId.value = null
+}
+
+function openProfile() {
+  profileForm.name = profile.value.name || ""
+  profileForm.headline = profile.value.headline || ""
+  profileForm.summary = profile.value.summary || ""
+  profileForm.skills = (profile.value.skills || []).join(", ")
+  showProfile.value = true
+}
+
+async function saveProfile() {
+  await run(async () => {
+    await api.updateProfile({
+      name: profileForm.name,
+      headline: profileForm.headline,
+      summary: profileForm.summary,
+      skills: profileForm.skills.split(",").map((skill) => skill.trim()).filter(Boolean)
+    })
+    showProfile.value = false
+  })
 }
 
 async function saveClient() {
@@ -87,12 +124,14 @@ async function saveCommission() {
       client_id: Number(jobForm.client_id),
       state: jobForm.state,
       due_on: jobForm.due_on,
+      listing: jobForm.listing,
       notes: jobForm.notes
     })
     jobForm.title = ""
     jobForm.due_on = ""
+    jobForm.listing = ""
     jobForm.notes = ""
-    jobForm.state = "inquiry"
+    jobForm.state = "saved"
     showCommission.value = false
   })
 }
@@ -105,6 +144,7 @@ async function saveEdit() {
       client_id: Number(edit.client_id),
       due_on: edit.due_on,
       notes: edit.notes,
+      listing: edit.listing,
       state: edit.state
     })
   )
@@ -152,18 +192,34 @@ function onDrop(event, state) {
   <div>
     <p v-if="error" class="flash bad" role="alert">{{ error }}</p>
 
+    <section class="profile-bar">
+      <div>
+        <p class="eyebrow">Your profile</p>
+        <p class="lede">{{ profile.headline || "Add the skills you want a role to mention." }}</p>
+        <p class="skills">
+          <span v-for="skill in profile.skills" :key="skill">{{ skill }}</span>
+          <span v-if="!profile.skills.length" class="muted">No skills yet.</span>
+        </p>
+      </div>
+      <button type="button" @click="openProfile">Edit profile</button>
+    </section>
+
     <div class="toolbar">
       <form class="toolbar" @submit.prevent="applyFilters">
         <label>
           Filter
-          <input v-model="filters.query" type="text" autocomplete="off" placeholder="Title or client">
+          <input v-model="filters.query" type="text" autocomplete="off" placeholder="Title, company, or listing">
         </label>
         <label>
-          Client
+          Company
           <select v-model="filters.client">
-            <option value="">All clients</option>
+            <option value="">All companies</option>
             <option v-for="client in clients" :key="client.id" :value="client.slug">{{ client.name }}</option>
           </select>
+        </label>
+        <label>
+          Min match
+          <input v-model="filters.minMatch" type="number" min="0" max="100" placeholder="0">
         </label>
         <label class="check">
           <input v-model="filters.dueSoon" type="checkbox">
@@ -172,12 +228,12 @@ function onDrop(event, state) {
         <button class="primary" type="submit">Filter</button>
       </form>
       <div class="actions">
-        <button type="button" @click="showClient = true">New client</button>
-        <button class="primary" type="button" @click="showCommission = true">New commission</button>
+        <button type="button" @click="showClient = true">New company</button>
+        <button class="primary" type="button" @click="showCommission = true">New role</button>
       </div>
     </div>
 
-    <section class="board" aria-label="Studio board">
+    <section class="board" aria-label="Role board">
       <article
         v-for="(label, state) in states"
         :key="state"
@@ -198,6 +254,7 @@ function onDrop(event, state) {
         >
           <strong>{{ item.title }}</strong>
           <span class="muted">{{ item.client.name }}</span>
+          <span class="match" :class="matchTone(item.match?.score)">{{ matchLabel(item) }}</span>
           <span v-if="item.due_on" class="muted due" :class="{ soon: dueSoon(item.due_on) }">Due {{ item.due_on }}</span>
         </button>
       </article>
@@ -208,13 +265,17 @@ function onDrop(event, state) {
       <p class="eyebrow">{{ states[selected.state] }}</p>
       <h2 id="job-title">{{ selected.title }}</h2>
       <p class="muted">{{ selected.client.name }}</p>
+      <p class="match" :class="matchTone(selected.match?.score)">{{ matchLabel(selected) }}</p>
+      <p v-if="selected.match?.hits?.length" class="hint">Fits: {{ selected.match.hits.join(", ") }}</p>
+      <p v-if="selected.match?.gaps?.length" class="hint">Missing: {{ selected.match.gaps.join(", ") }}</p>
+      <p v-if="selected.match?.score == null" class="hint">Paste the job description to score this role.</p>
 
       <label>
         Title
         <input v-model="edit.title" type="text">
       </label>
       <label>
-        Client
+        Company
         <select v-model="edit.client_id">
           <option v-for="client in clients" :key="client.id" :value="String(client.id)">{{ client.name }}</option>
         </select>
@@ -230,8 +291,12 @@ function onDrop(event, state) {
         <input v-model="edit.due_on" type="date">
       </label>
       <label>
+        Job description
+        <textarea v-model="edit.listing" placeholder="Paste the listing. Matching reads this, not your notes."></textarea>
+      </label>
+      <label>
         Notes
-        <textarea v-model="edit.notes" placeholder="Markdown is fine."></textarea>
+        <textarea v-model="edit.notes" placeholder="Why you applied. Markdown is fine."></textarea>
       </label>
       <div class="actions">
         <button class="primary" type="button" @click="saveEdit">Save</button>
@@ -242,7 +307,7 @@ function onDrop(event, state) {
       <h3 class="eyebrow" style="margin-top: 1.4rem">Note</h3>
       <div class="notes" v-html="selected.notes_html || '<p class=&quot;muted&quot;>No note yet.</p>'"></div>
 
-      <h3 class="eyebrow">Assets</h3>
+      <h3 class="eyebrow">Links</h3>
       <ul class="assets">
         <li v-for="asset in selected.assets" :key="asset.id">
           <a :href="asset.url" target="_blank" rel="noreferrer">{{ asset.label }}</a>
@@ -251,7 +316,7 @@ function onDrop(event, state) {
       </ul>
       <label>
         Label
-        <input v-model="assetForm.label" type="text" placeholder="Press sheet">
+        <input v-model="assetForm.label" type="text" placeholder="Posting">
       </label>
       <label>
         URL
@@ -260,19 +325,46 @@ function onDrop(event, state) {
       <button type="button" @click="saveAsset">Add link</button>
     </aside>
 
+    <div v-if="showProfile" class="modal" @click.self="showProfile = false">
+      <form class="panel" @submit.prevent="saveProfile">
+        <h2>Profile</h2>
+        <label>
+          Name
+          <input v-model="profileForm.name" type="text" autocomplete="off">
+        </label>
+        <label>
+          Headline
+          <input v-model="profileForm.headline" type="text" autocomplete="off">
+        </label>
+        <label>
+          Summary
+          <textarea v-model="profileForm.summary" placeholder="What you want a role to see."></textarea>
+        </label>
+        <label>
+          Skills
+          <input v-model="profileForm.skills" type="text" autocomplete="off" placeholder="Rails, Vue, Go">
+        </label>
+        <p class="hint">Comma-separated. Matching looks for these words in a listing.</p>
+        <div class="actions">
+          <button class="primary" type="submit">Save profile</button>
+          <button type="button" @click="showProfile = false">Cancel</button>
+        </div>
+      </form>
+    </div>
+
     <div v-if="showClient" class="modal" @click.self="showClient = false">
       <form class="panel" @submit.prevent="saveClient">
-        <h2>New client</h2>
+        <h2>New company</h2>
         <label>
           Name
           <input v-model="clientForm.name" type="text" required autocomplete="off">
         </label>
         <label>
           Note
-          <textarea v-model="clientForm.note" placeholder="Who they are, what they usually ask for."></textarea>
+          <textarea v-model="clientForm.note" placeholder="What they hire for."></textarea>
         </label>
         <div class="actions">
-          <button class="primary" type="submit">Create client</button>
+          <button class="primary" type="submit">Create company</button>
           <button type="button" @click="showClient = false">Cancel</button>
         </div>
       </form>
@@ -280,15 +372,15 @@ function onDrop(event, state) {
 
     <div v-if="showCommission" class="modal" @click.self="showCommission = false">
       <form class="panel" @submit.prevent="saveCommission">
-        <h2>New commission</h2>
+        <h2>New role</h2>
         <label>
           Title
           <input v-model="jobForm.title" type="text" required autocomplete="off">
         </label>
         <label>
-          Client
+          Company
           <select v-model="jobForm.client_id" required>
-            <option disabled value="">Choose a client</option>
+            <option disabled value="">Choose a company</option>
             <option v-for="client in clients" :key="client.id" :value="String(client.id)">{{ client.name }}</option>
           </select>
         </label>
@@ -303,11 +395,15 @@ function onDrop(event, state) {
           <input v-model="jobForm.due_on" type="date">
         </label>
         <label>
+          Job description
+          <textarea v-model="jobForm.listing" placeholder="Paste the listing."></textarea>
+        </label>
+        <label>
           Notes
           <textarea v-model="jobForm.notes"></textarea>
         </label>
         <div class="actions">
-          <button class="primary" type="submit">Create commission</button>
+          <button class="primary" type="submit">Create role</button>
           <button type="button" @click="showCommission = false">Cancel</button>
         </div>
       </form>

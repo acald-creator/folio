@@ -117,6 +117,7 @@ label {
 input[type="text"],
 input[type="date"],
 input[type="url"],
+input[type="number"],
 select,
 textarea {
   width: min(28rem, 100%);
@@ -238,6 +239,51 @@ button.danger {
 
 .card .due.soon {
   color: var(--soon);
+}
+
+.card .match,
+.drawer .match {
+  font: 650 0.78rem/1.2 var(--sans);
+}
+
+.match.high {
+  color: var(--gold);
+}
+
+.match.mid {
+  color: var(--soon);
+}
+
+.match.low,
+.match.none {
+  color: var(--muted);
+}
+
+.profile-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1.15rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+}
+
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.65rem 0 0;
+}
+
+.skills span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
 .drawer-back {
