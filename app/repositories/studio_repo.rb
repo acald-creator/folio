@@ -63,6 +63,32 @@ class StudioRepo < ROM::Repository[:clients]
     raise Folio::Error, "Match filter is not a number."
   end
 
+  def find_or_create_client(name:, note: nil)
+    name = name.to_s.strip
+    existing = all_clients.find { |client| client.name.casecmp?(name) }
+    return existing if existing
+
+    create_client(name: name, note: note)
+  end
+
+  def import_posting(company_name:, title:, listing:, url: nil, location: nil)
+    client = find_or_create_client(name: company_name, note: location)
+    title = title.to_s.strip
+    raise Folio::Error, "Title is required." if title.blank?
+    if commissions.where(client_id: client.id, title: title).one
+      raise Folio::Error, "That role is already on the board."
+    end
+
+    job = create_commission(
+      title: title,
+      client_id: client.id,
+      listing: listing.to_s,
+      notes: location.to_s
+    )
+    add_asset(job.id, label: "Posting", url: url) if url.to_s.match?(/\Ahttps?:\/\/\S+\z/i)
+    job
+  end
+
   def create_client(name:, note: nil)
     name = name.to_s.strip
     raise Folio::Error, "Company name is required." if name.blank?

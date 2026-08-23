@@ -259,6 +259,38 @@ button.danger {
   color: var(--muted);
 }
 
+.careers {
+  margin-bottom: 1.15rem;
+  padding: 0.9rem 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-raise);
+}
+
+.careers h2 {
+  margin: 0 0 0.35rem;
+  font: 650 1.15rem/1.2 var(--serif);
+}
+
+.careers label input {
+  width: min(40rem, 100%);
+}
+
+.career-list {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.career-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--line);
+}
+
 .profile-bar {
   display: flex;
   justify-content: space-between;

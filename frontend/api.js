@@ -29,6 +29,14 @@ export function loadBoard(filters) {
   return request(`/api/board${query ? `?${query}` : ""}`)
 }
 
+export function lookupCareers(url) {
+  return request("/api/careers/lookup", { method: "POST", body: JSON.stringify({ url }) })
+}
+
+export function importCareer(payload) {
+  return request("/api/careers/import", { method: "POST", body: JSON.stringify(payload) })
+}
+
 export function updateProfile(payload) {
   return request("/api/profile", { method: "PATCH", body: JSON.stringify(payload) })
 }

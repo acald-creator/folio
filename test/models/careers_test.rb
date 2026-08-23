@@ -1,0 +1,92 @@
+require "test_helper"
+
+class CareersTest < ActiveSupport::TestCase
+  test "parses well known career hosts" do
+    greenhouse = Folio::Careers.parse("https://boards.greenhouse.io/acme/jobs/123")
+    assert_equal :greenhouse, greenhouse.kind
+    assert_equal "acme", greenhouse.board
+    assert_equal "123", greenhouse.job_id
+
+    lever = Folio::Careers.parse("https://jobs.lever.co/north-glass/abcd-ef")
+    assert_equal :lever, lever.kind
+    assert_equal "north-glass", lever.board
+    assert_equal "abcd-ef", lever.job_id
+
+    ashby = Folio::Careers.parse("https://jobs.ashbyhq.com/mongoose")
+    assert_equal :ashby, ashby.kind
+    assert_equal "mongoose", ashby.board
+    assert_nil ashby.job_id
+  end
+
+  test "rejects an unknown host" do
+    error = assert_raises(Folio::Error) { Folio::Careers.parse("https://linkedin.com/jobs/view/1") }
+    assert_match(/Greenhouse/, error.message)
+  end
+
+  test "scores a greenhouse board through the public api shape" do
+    http = lambda do |url|
+      case url
+      when "https://boards-api.greenhouse.io/v1/boards/mongoose"
+        [ 200, { name: "Mongoose Press" }.to_json ]
+      when "https://boards-api.greenhouse.io/v1/boards/mongoose/jobs?content=true"
+        [ 200, {
+          jobs: [
+            {
+              id: 11,
+              title: "Staff Rails engineer",
+              content: "<p>Rails, Vue, and SQLite. No Kubernetes.</p>",
+              absolute_url: "https://boards.greenhouse.io/mongoose/jobs/11",
+              location: { name: "Remote" }
+            },
+            {
+              id: 12,
+              title: "Platform engineer",
+              content: "<p>Kubernetes, Terraform, and Java.</p>",
+              absolute_url: "https://boards.greenhouse.io/mongoose/jobs/12",
+              location: { name: "Austin" }
+            }
+          ]
+        }.to_json ]
+      else
+        flunk "unexpected url #{url}"
+      end
+    end
+
+    result = Folio::Careers.lookup(
+      "https://boards.greenhouse.io/mongoose",
+      skills: [ "Rails", "Vue", "SQLite" ],
+      http: http
+    )
+
+    assert_equal "greenhouse", result[:source]
+    assert_equal "Mongoose Press", result[:company]
+    assert_equal "Staff Rails engineer", result[:jobs].first[:title]
+    assert result[:jobs].first[:match][:score] > result[:jobs].last[:match][:score]
+    assert_includes result[:jobs].first[:match][:hits], "Rails"
+  end
+
+  test "imports a posting onto the board once" do
+    job = studio.import_posting(
+      company_name: "Mongoose Press",
+      title: "Staff Rails engineer",
+      listing: "Rails and Vue.",
+      url: "https://boards.greenhouse.io/mongoose/jobs/11",
+      location: "Remote"
+    )
+
+    columns = studio.board
+    card = columns["saved"].first
+    assert_equal job.id, card[:id]
+    assert_equal "Mongoose Press", card[:client][:name]
+    assert_equal "Posting", card[:assets].first[:label]
+
+    error = assert_raises(Folio::Error) do
+      studio.import_posting(
+        company_name: "Mongoose Press",
+        title: "Staff Rails engineer",
+        listing: "Rails and Vue."
+      )
+    end
+    assert_match(/already/, error.message)
+  end
+end
