@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title><%= content_for(:title) || "Folio" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="Studio queue. Clients, commissions, and a Vue board. ROM stores the work.">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= yield :head %>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <%= stylesheet_link_tag :app %>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="mast">
+        <div>
+          <p class="eyebrow">Studio queue</p>
+          <p class="wordmark"><%= link_to "Folio", root_path %></p>
+        </div>
+        <p class="lede">
+          One board. Clients and commissions live in ROM.
+          Vue is the board and the filters. Drag a card, or open it
+          and write the note.
+        </p>
+      </header>
+      <main>
+        <%= yield %>
+      </main>
+    </div>
+    <%= javascript_include_tag "folio", type: "module" %>
+  </body>
+</html>
