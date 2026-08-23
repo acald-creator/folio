@@ -1,13 +1,13 @@
 # Folio
 
-Studio queue. Rails is the web shell. [ROM](https://rom-rb.org) stores
-clients, commissions, and asset links. [Vue](https://vuejs.org) is the
-board.
+Role board. Save a job, paste the listing, see how it matches your
+skills. Drag the card as you apply.
 
-Inquiry → booked → making → review → done. Open a card for markdown
-notes and links. Drag it to move.
+Rails is the shell. [ROM](https://rom-rb.org) stores companies, roles,
+and a profile. [Vue](https://vuejs.org) is the board. Matching is
+word overlap, not a model.
 
-This is a new product, not a revival of `simple-rails-vue-app-rom`.
+Saved → applied → interview → offer → closed.
 
 ## Run
 
@@ -22,25 +22,7 @@ bin/rails db:seed
 bin/rails server -p 4020
 ```
 
-Seed loads a small press / glass / ceramics board.
-
-## Why ROM and Vue
-
-A commission is relations: a client, a state, a due date, a pile of
-links. Repositories write those. Vue is the board and the filters, not
-the source of truth.
-
-Single-operator MVP: no accounts, no billing.
-
-## Layout
-
-```
-app/relations       ROM relations
-app/repositories    StudioRepo
-app/controllers/api JSON for the board
-frontend            Vue 3 board (Vite → app/assets/builds/folio.js)
-db/migrate          Sequel migrations
-```
+Seed loads a profile and five roles so the match column is not empty.
 
 ## License
 

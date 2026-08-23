@@ -1,13 +1,13 @@
 module Folio
   module States
-    ALL = %w[inquiry booked making review done].freeze
+    ALL = %w[saved applied interview offer closed].freeze
 
     LABELS = {
-      "inquiry" => "Inquiry",
-      "booked" => "Booked",
-      "making" => "Making",
-      "review" => "Review",
-      "done" => "Done"
+      "saved" => "Saved",
+      "applied" => "Applied",
+      "interview" => "Interview",
+      "offer" => "Offer",
+      "closed" => "Closed"
     }.freeze
 
     def self.known?(state)

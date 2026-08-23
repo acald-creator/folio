@@ -27,7 +27,7 @@ module Folio
         @container ||= begin
           migrate!
           ROM.container(:sql, connection) do |config|
-            config.register_relation(Clients, Commissions, Assets)
+            config.register_relation(Clients, Commissions, Assets, Profiles)
           end
         end
       end
@@ -42,7 +42,7 @@ module Folio
 
       def wipe!
         conn = connection
-        %i[assets commissions clients].each do |table|
+        %i[assets commissions clients profiles].each do |table|
           conn[table].delete if conn.table_exists?(table)
         end
       end

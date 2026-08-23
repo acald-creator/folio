@@ -4,9 +4,10 @@ module Api
       commission = studio.create_commission(
         title: params[:title],
         client_id: params[:client_id].to_i,
-        state: params[:state].presence || "inquiry",
+        state: params[:state].presence || "saved",
         due_on: params[:due_on],
-        notes: params[:notes]
+        notes: params[:notes],
+        listing: params[:listing]
       )
       render json: { id: commission.id }, status: :created
     end
@@ -18,6 +19,7 @@ module Api
       attrs[:state] = params[:state] if params.key?(:state)
       attrs[:due_on] = params[:due_on] if params.key?(:due_on)
       attrs[:notes] = params[:notes] if params.key?(:notes)
+      attrs[:listing] = params[:listing] if params.key?(:listing)
       studio.update_commission(params[:id], attrs)
       render json: { ok: true }
     end
