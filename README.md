@@ -1,11 +1,11 @@
 # Folio
 
-Role board. Save a job, paste the listing, see how it matches your
-skills. Drag the card as you apply.
+Role board. Paste a Greenhouse, Lever, Ashby, Workable, or
+SmartRecruiters careers link. Folio calls that board's public jobs API,
+scores each role against your skills, and lets you save a card.
 
-Rails is the shell. [ROM](https://rom-rb.org) stores companies, roles,
-and a profile. [Vue](https://vuejs.org) is the board. Matching is
-word overlap, not a model.
+You can still paste a listing by hand. Matching is word overlap, not a
+model. Drag the card as you apply.
 
 Saved → applied → interview → offer → closed.
 

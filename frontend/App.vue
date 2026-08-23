@@ -12,6 +12,9 @@ const showClient = ref(false)
 const showCommission = ref(false)
 const showProfile = ref(false)
 const overState = ref("")
+const careersUrl = ref("")
+const careers = ref(null)
+const savingKey = ref("")
 
 const filters = reactive({ query: "", client: "", dueSoon: false, minMatch: "" })
 const clientForm = reactive({ name: "", note: "" })
@@ -70,6 +73,30 @@ onMounted(() => run(refresh))
 
 function applyFilters() {
   return run(refresh)
+}
+
+function jobKey(job) {
+  return `${job.company}::${job.title}`
+}
+
+async function lookupCareers() {
+  await run(async () => {
+    careers.value = await api.lookupCareers(careersUrl.value)
+  })
+}
+
+async function saveCareer(job) {
+  savingKey.value = jobKey(job)
+  await run(async () => {
+    await api.importCareer({
+      company: job.company,
+      title: job.title,
+      listing: job.listing,
+      url: job.url,
+      location: job.location
+    })
+  })
+  savingKey.value = ""
 }
 
 function open(item) {
@@ -202,6 +229,34 @@ function onDrop(event, state) {
         </p>
       </div>
       <button type="button" @click="openProfile">Edit profile</button>
+    </section>
+
+    <section class="careers">
+      <form @submit.prevent="lookupCareers">
+        <h2>Check a careers link</h2>
+        <p class="hint">Greenhouse, Lever, Ashby, Workable, or SmartRecruiters. Folio calls their public job APIs, then scores each role against your skills.</p>
+        <label>
+          Careers URL
+          <input v-model="careersUrl" type="url" required placeholder="https://boards.greenhouse.io/company">
+        </label>
+        <button class="primary" type="submit">Check board</button>
+      </form>
+      <div v-if="careers" class="career-list">
+        <p class="eyebrow">{{ careers.company }} · {{ careers.source }} · {{ careers.jobs.length }} roles</p>
+        <article v-for="job in careers.jobs" :key="jobKey(job)" class="career-row">
+          <div>
+            <strong>{{ job.title }}</strong>
+            <p class="muted">{{ job.location || "Location not listed" }}</p>
+            <p class="match" :class="matchTone(job.match?.score)">{{ job.match?.score == null ? "No skill overlap" : `${job.match.score}% match` }}</p>
+            <p v-if="job.match?.hits?.length" class="hint">Fits: {{ job.match.hits.join(", ") }}</p>
+            <p v-if="job.match?.gaps?.length" class="hint">Missing: {{ job.match.gaps.join(", ") }}</p>
+          </div>
+          <div class="actions">
+            <a v-if="job.url" class="button" :href="job.url" target="_blank" rel="noreferrer">Open</a>
+            <button class="primary" type="button" :disabled="savingKey === jobKey(job)" @click="saveCareer(job)">Save to board</button>
+          </div>
+        </article>
+      </div>
     </section>
 
     <div class="toolbar">
