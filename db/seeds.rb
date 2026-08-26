@@ -1,15 +1,23 @@
 repo = StudioRepo.new(Folio::Database.container)
-return if repo.all_clients.any?
 
 repo.update_profile(
   name: "Antonette Caldwell",
   headline: "Rails, tokens, and small studio tools",
-  summary: "I build operator tools: a token sheet, a lockfile catalog, a webhook inbox, and this board.",
+  summary: <<~TXT.squish,
+    I build operator tools and product boards: Swatch and Specimen for design
+    tokens, Manifest and Folio for Rails+ROM queues, Lumen and VeriGit in Go
+    and TypeScript, Gazette in Phoenix LiveView, plus World/Terranox packaging
+    work in Rust. I want roles that look like that — product engineering on
+    Rails/Vue/TS, Go services with SQLite, or design-system pipelines — not
+    generic Kubernetes platform seats.
+  TXT
   skills: [
     "Ruby", "Rails", "ROM", "Vue", "ReScript", "TypeScript", "Go", "C#",
-    "SQLite", "Design tokens"
+    "Elixir", "Phoenix", "Rust", "SQLite", "Design tokens", "Hono"
   ]
 )
+
+return if repo.all_clients.any?
 
 press = repo.create_client(
   name: "Mongoose Press",

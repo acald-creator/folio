@@ -3,7 +3,7 @@
   <head>
     <title><%= content_for(:title) || "Folio" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="description" content="Role board. Paste a listing, match it against your skills, drag the card.">
+    <meta name="description" content="Role board. Folio curates open roles that match your skills from public career boards.">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= yield :head %>
@@ -18,9 +18,8 @@
           <p class="wordmark"><%= link_to "Folio", root_path %></p>
         </div>
         <p class="lede">
-          Paste a Greenhouse, Lever, Ashby, Workable, or SmartRecruiters
-          careers link. Folio reads the public jobs API and scores each
-          role against your skills.
+          Folio scans a curated list of public Greenhouse and Ashby boards,
+          scores open roles against your skills, and lets you save a card.
         </p>
       </header>
       <main>

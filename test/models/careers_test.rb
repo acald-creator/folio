@@ -65,6 +65,77 @@ class CareersTest < ActiveSupport::TestCase
     assert_includes result[:jobs].first[:match][:hits], "Rails"
   end
 
+  test "matched feed ranks curated boards without a pasted url" do
+    catalog = [
+      Folio::Catalog::Entry.new(
+        kind: :greenhouse,
+        board: "mongoose",
+        company: "Mongoose Press",
+        why: "Rails and Vue product work."
+      ),
+      Folio::Catalog::Entry.new(
+        kind: :ashby,
+        board: "harbor",
+        company: "Harbor Platform",
+        why: "Wrong stack on purpose."
+      )
+    ]
+
+    http = lambda do |url|
+      case url
+      when "https://boards-api.greenhouse.io/v1/boards/mongoose"
+        [ 200, { name: "Mongoose Press" }.to_json ]
+      when "https://boards-api.greenhouse.io/v1/boards/mongoose/jobs?content=true"
+        [ 200, {
+          jobs: [
+            {
+              id: 11,
+              title: "Staff Rails engineer",
+              content: "<p>Rails, Vue, ROM, and SQLite.</p>",
+              absolute_url: "https://boards.greenhouse.io/mongoose/jobs/11",
+              location: { name: "Remote" }
+            }
+          ]
+        }.to_json ]
+      when "https://api.ashbyhq.com/posting-api/job-board/harbor"
+        [ 200, {
+          name: "Harbor Platform",
+          jobs: [
+            {
+              title: "Platform engineer",
+              descriptionHtml: "<p>Kubernetes, Terraform, and Java Spring Boot.</p>",
+              location: "Austin",
+              jobUrl: "https://jobs.ashbyhq.com/harbor/platform"
+            }
+          ]
+        }.to_json ]
+      else
+        flunk "unexpected url #{url}"
+      end
+    end
+
+    result = Folio::Careers.matched(
+      skills: [ "Rails", "Vue", "SQLite", "ROM" ],
+      min: 20,
+      catalog: catalog,
+      http: http
+    )
+
+    assert_equal 2, result[:scanned]
+    assert_equal 1, result[:jobs].length
+    assert_equal "Staff Rails engineer", result[:jobs].first[:title]
+    assert_equal "Mongoose Press", result[:jobs].first[:company]
+    assert_equal "Rails and Vue product work.", result[:jobs].first[:why]
+    assert result[:jobs].first[:match][:score] >= 20
+  end
+
+  test "catalog loads curated boards from yaml" do
+    entries = Folio::Catalog.entries
+    assert entries.length >= 5
+    assert entries.all? { |entry| Folio::Careers::KINDS.include?(entry.kind) }
+    assert entries.all? { |entry| entry.board.present? }
+  end
+
   test "imports a posting onto the board once" do
     job = studio.import_posting(
       company_name: "Mongoose Press",
