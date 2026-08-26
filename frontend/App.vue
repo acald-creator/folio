@@ -16,6 +16,7 @@ const careersUrl = ref("")
 const careers = ref(null)
 const matched = ref(null)
 const matchedMin = ref("25")
+const matchedUsOnly = ref(true)
 const matchedLoading = ref(false)
 const matchedPage = ref(1)
 const careersPage = ref(1)
@@ -117,7 +118,10 @@ async function loadMatched() {
   matchedLoading.value = true
   error.value = ""
   try {
-    matched.value = await api.loadMatchedCareers(matchedMin.value)
+    matched.value = await api.loadMatchedCareers({
+      min: matchedMin.value,
+      usOnly: matchedUsOnly.value
+    })
     matchedPage.value = 1
   } catch (err) {
     error.value = err.message
@@ -301,6 +305,10 @@ function onDrop(event, state) {
             Min match
             <input v-model="matchedMin" type="number" min="0" max="100">
           </label>
+          <label class="check">
+            <input v-model="matchedUsOnly" type="checkbox">
+            US only
+          </label>
           <button class="primary" type="submit" :disabled="matchedLoading">
             {{ matchedLoading ? "Scanning…" : "Refresh matches" }}
           </button>
@@ -311,7 +319,9 @@ function onDrop(event, state) {
 
       <div v-if="matched" class="career-list">
         <p class="eyebrow">
-          {{ matched.jobs.length }} roles ≥ {{ matched.min }}% · scanned {{ matched.scanned }} boards
+          {{ matched.jobs.length }} roles ≥ {{ matched.min }}%
+          <template v-if="matched.us_only"> · US only</template>
+          · scanned {{ matched.scanned }} boards
         </p>
         <article v-for="job in matchedPageJobs" :key="jobKey(job)" class="career-row">
           <div>

@@ -282,12 +282,35 @@ button.danger {
 
 .match-controls {
   display: flex;
-  gap: 0.65rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
   align-items: end;
+  margin: 0 0 1rem;
 }
 
 .match-controls label input {
+  display: block;
+  margin-top: 0.35rem;
+  min-width: 5rem;
   width: 5.5rem;
+}
+
+.match-controls .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  padding-bottom: 0.35rem;
+}
+
+.match-controls .check input {
+  display: inline;
+  margin: 0;
+  min-width: 0;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
 }
 
 .careers label input {

@@ -32,8 +32,8 @@ module Folio
       new(http: http).lookup(url, skills: skills)
     end
 
-    def self.matched(skills:, min: DEFAULT_MIN, catalog: nil, http: nil, limit: MATCHED_LIMIT)
-      new(http: http).matched(skills: skills, min: min, catalog: catalog, limit: limit)
+    def self.matched(skills:, min: DEFAULT_MIN, catalog: nil, http: nil, limit: MATCHED_LIMIT, us_only: true)
+      new(http: http).matched(skills: skills, min: min, catalog: catalog, limit: limit, us_only: us_only)
     end
 
     def initialize(http: nil)
@@ -76,9 +76,11 @@ module Folio
     end
 
     # Scan the curated company list and return roles that fit the profile skills.
-    def matched(skills:, min: DEFAULT_MIN, catalog: nil, limit: MATCHED_LIMIT)
+    def matched(skills:, min: DEFAULT_MIN, catalog: nil, limit: MATCHED_LIMIT, us_only: true)
       min = min.to_i
       min = DEFAULT_MIN if min.negative?
+      us_only = ActiveModel::Type::Boolean.new.cast(us_only)
+      us_only = true if us_only.nil?
       entries = Array(catalog || Folio::Catalog.entries)
       raise Folio::Error, "Curated catalog is empty." if entries.empty?
 
@@ -96,6 +98,7 @@ module Folio
         scored = score_board(board, skills: skills, source: board.source, why: row[:why], limit: nil)
         scored[:jobs].each do |job|
           next if job[:match][:score].nil? || job[:match][:score] < min
+          next if us_only && !Folio::Locations.us?(job[:location])
 
           jobs << job.merge(
             company: scored[:company],
@@ -110,6 +113,7 @@ module Folio
 
       {
         min: min,
+        us_only: us_only,
         scanned: entries.length,
         jobs: jobs,
         errors: errors
