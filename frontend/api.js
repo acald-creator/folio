@@ -29,9 +29,10 @@ export function loadBoard(filters) {
   return request(`/api/board${query ? `?${query}` : ""}`)
 }
 
-export function loadMatchedCareers(min) {
+export function loadMatchedCareers({ min, usOnly = true } = {}) {
   const params = new URLSearchParams()
   if (min != null && min !== "") params.set("min", String(min))
+  params.set("us", usOnly ? "1" : "0")
   const query = params.toString()
   return request(`/api/careers/matched${query ? `?${query}` : ""}`)
 }

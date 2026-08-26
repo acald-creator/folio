@@ -3,7 +3,8 @@ module Api
     def matched
       render json: Folio::Careers.matched(
         skills: studio.profile[:skills],
-        min: params[:min].presence || Folio::Careers::DEFAULT_MIN
+        min: params[:min].presence || Folio::Careers::DEFAULT_MIN,
+        us_only: params.key?(:us) ? params[:us] : true
       )
     end
 

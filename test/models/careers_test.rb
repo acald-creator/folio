@@ -93,7 +93,7 @@ class CareersTest < ActiveSupport::TestCase
               title: "Staff Rails engineer",
               content: "<p>Rails, Vue, ROM, and SQLite.</p>",
               absolute_url: "https://boards.greenhouse.io/mongoose/jobs/11",
-              location: { name: "Remote" }
+              location: { name: "Remote, United States" }
             }
           ]
         }.to_json ]
@@ -104,7 +104,7 @@ class CareersTest < ActiveSupport::TestCase
             {
               title: "Platform engineer",
               descriptionHtml: "<p>Kubernetes, Terraform, and Java Spring Boot.</p>",
-              location: "Austin",
+              location: "Austin, TX",
               jobUrl: "https://jobs.ashbyhq.com/harbor/platform"
             }
           ]
@@ -122,11 +122,79 @@ class CareersTest < ActiveSupport::TestCase
     )
 
     assert_equal 2, result[:scanned]
+    assert result[:us_only]
     assert_equal 1, result[:jobs].length
     assert_equal "Staff Rails engineer", result[:jobs].first[:title]
     assert_equal "Mongoose Press", result[:jobs].first[:company]
     assert_equal "Rails and Vue product work.", result[:jobs].first[:why]
     assert result[:jobs].first[:match][:score] >= 20
+  end
+
+  test "matched feed can restrict to US locations" do
+    catalog = [
+      Folio::Catalog::Entry.new(
+        kind: :greenhouse,
+        board: "mongoose",
+        company: "Mongoose Press",
+        why: "Rails product work."
+      )
+    ]
+
+    http = lambda do |url|
+      case url
+      when "https://boards-api.greenhouse.io/v1/boards/mongoose"
+        [ 200, { name: "Mongoose Press" }.to_json ]
+      when "https://boards-api.greenhouse.io/v1/boards/mongoose/jobs?content=true"
+        [ 200, {
+          jobs: [
+            {
+              id: 11,
+              title: "Staff Rails engineer US",
+              content: "<p>Rails, Vue, ROM, and SQLite.</p>",
+              absolute_url: "https://boards.greenhouse.io/mongoose/jobs/11",
+              location: { name: "San Francisco" }
+            },
+            {
+              id: 12,
+              title: "Staff Rails engineer UK",
+              content: "<p>Rails, Vue, ROM, and SQLite.</p>",
+              absolute_url: "https://boards.greenhouse.io/mongoose/jobs/12",
+              location: { name: "London, United Kingdom" }
+            },
+            {
+              id: 13,
+              title: "Staff Rails engineer Bang",
+              content: "<p>Rails, Vue, ROM, and SQLite.</p>",
+              absolute_url: "https://boards.greenhouse.io/mongoose/jobs/13",
+              location: { name: "Bangalore" }
+            }
+          ]
+        }.to_json ]
+      else
+        flunk "unexpected url #{url}"
+      end
+    end
+
+    us = Folio::Careers.matched(
+      skills: [ "Rails", "Vue", "SQLite", "ROM" ],
+      min: 20,
+      catalog: catalog,
+      http: http,
+      us_only: true
+    )
+    assert_equal 1, us[:jobs].length
+    assert_equal "Staff Rails engineer US", us[:jobs].first[:title]
+    assert_match(/San Francisco/i, us[:jobs].first[:location])
+
+    all = Folio::Careers.matched(
+      skills: [ "Rails", "Vue", "SQLite", "ROM" ],
+      min: 20,
+      catalog: catalog,
+      http: http,
+      us_only: false
+    )
+    assert_equal 3, all[:jobs].length
+    refute all[:us_only]
   end
 
   test "catalog loads curated boards from yaml" do
