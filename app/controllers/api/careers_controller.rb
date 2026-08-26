@@ -1,5 +1,12 @@
 module Api
   class CareersController < BaseController
+    def matched
+      render json: Folio::Careers.matched(
+        skills: studio.profile[:skills],
+        min: params[:min].presence || Folio::Careers::DEFAULT_MIN
+      )
+    end
+
     def lookup
       render json: Folio::Careers.lookup(params[:url], skills: studio.profile[:skills])
     end

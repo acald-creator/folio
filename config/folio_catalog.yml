@@ -1,0 +1,79 @@
+# Curated public career boards Folio scans for you.
+# Each entry is a Greenhouse / Lever / Ashby / Workable / SmartRecruiters token.
+# Why: companies that often hire for Rails, Vue/TS product work, Go services,
+# design systems, or small operator tools — not a scrape of the whole web.
+
+- kind: greenhouse
+  board: gitlab
+  company: GitLab
+  why: Ruby on Rails backend, TypeScript fullstack, remote-friendly engineering.
+
+- kind: greenhouse
+  board: stripe
+  company: Stripe
+  why: Backend and product engineering; Go and TypeScript show up often.
+
+- kind: greenhouse
+  board: intercom
+  company: Intercom
+  why: Product engineers on Rails-shaped stacks and customer tooling.
+
+- kind: greenhouse
+  board: honeycomb
+  company: Honeycomb
+  why: Observability product engineering; smaller eng org than the hyperscalers.
+
+- kind: greenhouse
+  board: mozilla
+  company: Mozilla
+  why: Open-source product work; TypeScript and systems roles.
+
+- kind: greenhouse
+  board: calendly
+  company: Calendly
+  why: Product engineering at a mid-size SaaS company.
+
+- kind: greenhouse
+  board: figma
+  company: Figma
+  why: Design-systems adjacent product and platform roles.
+
+- kind: greenhouse
+  board: discord
+  company: Discord
+  why: Product and backend engineering with TypeScript and Go.
+
+- kind: ashby
+  board: linear
+  company: Linear
+  why: Product engineers on a focused issue tracker; TypeScript-first.
+
+- kind: ashby
+  board: notion
+  company: Notion
+  why: Product and platform engineering; design-heavy company.
+
+- kind: ashby
+  board: supabase
+  company: Supabase
+  why: Open-source developer tools; Postgres and TypeScript.
+
+- kind: ashby
+  board: render
+  company: Render
+  why: Developer platform; product and backend engineering.
+
+- kind: ashby
+  board: posthog
+  company: PostHog
+  why: Product engineers at an open-source analytics company.
+
+- kind: ashby
+  board: resend
+  company: Resend
+  why: Small product-engineering team; TypeScript and developer tools.
+
+- kind: ashby
+  board: 1password
+  company: 1Password
+  why: Product and platform engineering; security-minded tools.

@@ -7,6 +7,37 @@ class CareersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Greenhouse/, response.parsed_body.fetch("error"))
   end
 
+  test "matched endpoint returns the curated feed shape" do
+    original = Folio::Careers.method(:matched)
+    Folio::Careers.define_singleton_method(:matched) do |**|
+      {
+        min: 25,
+        scanned: 1,
+        jobs: [
+          {
+            title: "Staff Rails engineer",
+            company: "Mongoose Press",
+            location: "Remote",
+            url: "https://boards.greenhouse.io/mongoose/jobs/11",
+            listing: "Rails and Vue",
+            source: "greenhouse",
+            why: "Rails product work.",
+            match: { score: 80, hits: [ "Rails" ], gaps: [], detected: [ "Rails" ] }
+          }
+        ],
+        errors: []
+      }
+    end
+
+    get "/api/careers/matched", params: { min: 25 }, as: :json
+    assert_response :success
+    body = response.parsed_body
+    assert_equal 25, body.fetch("min")
+    assert_equal "Staff Rails engineer", body.fetch("jobs").first.fetch("title")
+  ensure
+    Folio::Careers.define_singleton_method(:matched, original)
+  end
+
   test "import lands a posting on the board" do
     post "/api/careers/import", params: {
       company: "Mongoose Press",

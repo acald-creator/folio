@@ -13,9 +13,12 @@ module Folio
       apply.workable.com
     ].freeze
 
+    KINDS = %i[greenhouse lever ashby workable smartrecruiters].freeze
     TOKEN = /\A[a-zA-Z0-9_-]+\z/
     JOB_ID = /\A[a-zA-Z0-9_-]+\z/
     LIMIT = 40
+    MATCHED_LIMIT = 40
+    DEFAULT_MIN = 25
 
     Source = Struct.new(:kind, :board, :job_id, :page, keyword_init: true)
     Job = Struct.new(:title, :location, :url, :listing, keyword_init: true)
@@ -27,6 +30,10 @@ module Folio
 
     def self.lookup(url, skills: [], http: nil)
       new(http: http).lookup(url, skills: skills)
+    end
+
+    def self.matched(skills:, min: DEFAULT_MIN, catalog: nil, http: nil, limit: MATCHED_LIMIT)
+      new(http: http).matched(skills: skills, min: min, catalog: catalog, limit: limit)
     end
 
     def initialize(http: nil)
@@ -65,16 +72,62 @@ module Folio
 
     def lookup(raw, skills: [])
       source = parse(raw)
-      board = fetch_board(source)
+      score_board(fetch_board(source), skills: skills, source: source)
+    end
+
+    # Scan the curated company list and return roles that fit the profile skills.
+    def matched(skills:, min: DEFAULT_MIN, catalog: nil, limit: MATCHED_LIMIT)
+      min = min.to_i
+      min = DEFAULT_MIN if min.negative?
+      entries = Array(catalog || Folio::Catalog.entries)
+      raise Folio::Error, "Curated catalog is empty." if entries.empty?
+
+      boards = fetch_catalog(entries)
+      jobs = []
+      errors = []
+
+      boards.each do |row|
+        if row[:error]
+          errors << { company: row[:company], board: row[:board], source: row[:kind].to_s, error: row[:error] }
+          next
+        end
+
+        board = row[:board_payload]
+        scored = score_board(board, skills: skills, source: board.source, why: row[:why], limit: nil)
+        scored[:jobs].each do |job|
+          next if job[:match][:score].nil? || job[:match][:score] < min
+
+          jobs << job.merge(
+            company: scored[:company],
+            source: scored[:source],
+            why: row[:why]
+          )
+        end
+      end
+
+      jobs = jobs.sort_by { |job| [ -(job[:match][:score] || -1), job[:company].to_s, job[:title].to_s ] }
+        .first(limit)
+
+      {
+        min: min,
+        scanned: entries.length,
+        jobs: jobs,
+        errors: errors
+      }
+    end
+
+    private
+
+    def score_board(board, skills:, source:, why: nil, limit: LIMIT)
       jobs = board.jobs
       jobs = jobs.select { |job| same_job?(job, source) } if source.job_id
-      raise Folio::Error, "That board has no open roles." if jobs.empty?
+      raise Folio::Error, "That board has no open roles." if jobs.empty? && limit
 
       scored = jobs.filter_map do |job|
         next if job.title.blank?
 
         match = Folio::Matcher.score(skills, title: job.title, listing: job.listing)
-        {
+        row = {
           title: job.title,
           company: board.company,
           location: job.location,
@@ -88,19 +141,62 @@ module Folio
             detected: match.detected
           }
         }
+        row[:why] = why if why.present?
+        row
       end
-      scored.sort_by { |job| [ -(job[:match][:score] || -1), job[:title] ] }.first(LIMIT)
-        .then do |list|
-          {
-            source: source.kind.to_s,
-            company: board.company,
-            page: source.page,
-            jobs: list
-          }
-        end
+      scored = scored.sort_by { |job| [ -(job[:match][:score] || -1), job[:title] ] }
+      scored = scored.first(limit) if limit
+
+      {
+        source: source.kind.to_s,
+        company: board.company,
+        page: source.page,
+        jobs: scored
+      }
     end
 
-    private
+    def fetch_catalog(entries)
+      if @http
+        return entries.map { |entry| fetch_catalog_entry(entry) }
+      end
+
+      # Parallelize public API calls so a curated refresh stays interactive.
+      entries.map do |entry|
+        Thread.new { fetch_catalog_entry(entry) }
+      end.map(&:value)
+    end
+
+    def fetch_catalog_entry(entry)
+      source = source(entry.kind, entry.board, nil, page_for(entry))
+      begin
+        {
+          kind: entry.kind,
+          board: entry.board,
+          company: entry.company,
+          why: entry.why,
+          board_payload: fetch_board(source)
+        }
+      rescue Folio::Error => error
+        {
+          kind: entry.kind,
+          board: entry.board,
+          company: entry.company,
+          why: entry.why,
+          error: error.message
+        }
+      end
+    end
+
+    def page_for(entry)
+      case entry.kind
+      when :greenhouse then "https://boards.greenhouse.io/#{entry.board}"
+      when :lever then "https://jobs.lever.co/#{entry.board}"
+      when :ashby then "https://jobs.ashbyhq.com/#{entry.board}"
+      when :workable then "https://apply.workable.com/#{entry.board}"
+      when :smartrecruiters then "https://jobs.smartrecruiters.com/#{entry.board}"
+      else "https://example.invalid/#{entry.board}"
+      end
+    end
 
     def source(kind, board, job_id, page)
       raise Folio::Error, "That careers link is missing the company." unless board.to_s.match?(TOKEN)

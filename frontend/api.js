@@ -29,6 +29,13 @@ export function loadBoard(filters) {
   return request(`/api/board${query ? `?${query}` : ""}`)
 }
 
+export function loadMatchedCareers(min) {
+  const params = new URLSearchParams()
+  if (min != null && min !== "") params.set("min", String(min))
+  const query = params.toString()
+  return request(`/api/careers/matched${query ? `?${query}` : ""}`)
+}
+
 export function lookupCareers(url) {
   return request("/api/careers/lookup", { method: "POST", body: JSON.stringify({ url }) })
 }
