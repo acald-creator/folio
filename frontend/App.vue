@@ -17,6 +17,9 @@ const careers = ref(null)
 const matched = ref(null)
 const matchedMin = ref("25")
 const matchedLoading = ref(false)
+const matchedPage = ref(1)
+const careersPage = ref(1)
+const pageSize = 5
 const showUrlLookup = ref(false)
 const savingKey = ref("")
 
@@ -33,6 +36,28 @@ const selected = computed(() => {
     if (found) return found
   }
   return null
+})
+
+const matchedTotalPages = computed(() => {
+  const total = matched.value?.jobs?.length || 0
+  return Math.max(1, Math.ceil(total / pageSize))
+})
+
+const matchedPageJobs = computed(() => {
+  const jobs = matched.value?.jobs || []
+  const start = (matchedPage.value - 1) * pageSize
+  return jobs.slice(start, start + pageSize)
+})
+
+const careersTotalPages = computed(() => {
+  const total = careers.value?.jobs?.length || 0
+  return Math.max(1, Math.ceil(total / pageSize))
+})
+
+const careersPageJobs = computed(() => {
+  const jobs = careers.value?.jobs || []
+  const start = (careersPage.value - 1) * pageSize
+  return jobs.slice(start, start + pageSize)
 })
 
 const dueSoon = (due) => {
@@ -93,6 +118,7 @@ async function loadMatched() {
   error.value = ""
   try {
     matched.value = await api.loadMatchedCareers(matchedMin.value)
+    matchedPage.value = 1
   } catch (err) {
     error.value = err.message
   } finally {
@@ -103,7 +129,16 @@ async function loadMatched() {
 async function lookupCareers() {
   await run(async () => {
     careers.value = await api.lookupCareers(careersUrl.value)
+    careersPage.value = 1
   })
+}
+
+function setMatchedPage(page) {
+  matchedPage.value = Math.min(matchedTotalPages.value, Math.max(1, page))
+}
+
+function setCareersPage(page) {
+  careersPage.value = Math.min(careersTotalPages.value, Math.max(1, page))
 }
 
 async function saveCareer(job) {
@@ -278,7 +313,7 @@ function onDrop(event, state) {
         <p class="eyebrow">
           {{ matched.jobs.length }} roles ≥ {{ matched.min }}% · scanned {{ matched.scanned }} boards
         </p>
-        <article v-for="job in matched.jobs" :key="jobKey(job)" class="career-row">
+        <article v-for="job in matchedPageJobs" :key="jobKey(job)" class="career-row">
           <div>
             <strong>{{ job.title }}</strong>
             <p class="muted">{{ job.company }} · {{ job.location || "Location not listed" }}</p>
@@ -292,6 +327,11 @@ function onDrop(event, state) {
             <button class="primary" type="button" :disabled="savingKey === jobKey(job)" @click="saveCareer(job)">Save to board</button>
           </div>
         </article>
+        <nav v-if="matched.jobs.length > pageSize" class="pager" aria-label="Matched roles pages">
+          <button type="button" :disabled="matchedPage <= 1" @click="setMatchedPage(matchedPage - 1)">Previous</button>
+          <span class="muted">Page {{ matchedPage }} of {{ matchedTotalPages }}</span>
+          <button type="button" :disabled="matchedPage >= matchedTotalPages" @click="setMatchedPage(matchedPage + 1)">Next</button>
+        </nav>
         <p v-if="!matched.jobs.length" class="hint">No roles cleared the match floor. Lower the minimum or edit your skills.</p>
         <p v-if="matched.errors?.length" class="hint">
           {{ matched.errors.length }} board{{ matched.errors.length === 1 ? "" : "s" }} skipped
@@ -311,7 +351,7 @@ function onDrop(event, state) {
         </form>
         <div v-if="careers" class="career-list">
           <p class="eyebrow">{{ careers.company }} · {{ careers.source }} · {{ careers.jobs.length }} roles</p>
-          <article v-for="job in careers.jobs" :key="jobKey(job)" class="career-row">
+          <article v-for="job in careersPageJobs" :key="jobKey(job)" class="career-row">
             <div>
               <strong>{{ job.title }}</strong>
               <p class="muted">{{ job.location || "Location not listed" }}</p>
@@ -324,6 +364,11 @@ function onDrop(event, state) {
               <button class="primary" type="button" :disabled="savingKey === jobKey(job)" @click="saveCareer(job)">Save to board</button>
             </div>
           </article>
+          <nav v-if="careers.jobs.length > pageSize" class="pager" aria-label="Careers URL pages">
+            <button type="button" :disabled="careersPage <= 1" @click="setCareersPage(careersPage - 1)">Previous</button>
+            <span class="muted">Page {{ careersPage }} of {{ careersTotalPages }}</span>
+            <button type="button" :disabled="careersPage >= careersTotalPages" @click="setCareersPage(careersPage + 1)">Next</button>
+          </nav>
         </div>
       </details>
     </section>

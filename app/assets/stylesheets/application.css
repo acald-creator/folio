@@ -325,6 +325,21 @@ button.danger {
   border-top: 1px solid var(--line);
 }
 
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.pager button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .profile-bar {
   display: flex;
   justify-content: space-between;
